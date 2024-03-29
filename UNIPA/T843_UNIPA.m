@@ -26,7 +26,7 @@ clc
 
 %% DEFINE AND EVALUATE SIMULATION PARAMETERS
 % General Parameters
-numScenarios = 100;                                                        % Number of Monte Carlo simulations
+numScenarios = 10;                                                        % Number of Monte Carlo simulations
 K_hour = 24;                                                               % Simulation hours in a day [hours/day]; can be 1, 2, 4, 6, 12 or 24
 K_day = 1;                                                                 % Simulation days in a year [days/year]
 T = K_hour*K_day;                                                          % Number of timesteps
@@ -45,12 +45,17 @@ w = [0.25 0.25 0.25 0.25 0];
 n = [10^6 10^6 10^5 10^7 1];
 
 % Components and grids inclusion (1 to include, 0 to exclude)
-E_grid = 1;                                                                % Electrical grid
-NG_grid = 1;                                                               % Natural gas network
-H_grid = 1;                                                                % District heating network
-F_grid = 1;                                                                % District cooling network
-W_grid = 1;                                                                % District water network
-H2_grid = 1;                                                               % District hydrogen network
+E_grid_in = 1;                                                             % Electrical grid
+NG_grid_in = 1;                                                            % Natural gas network
+H_grid_in = 1;                                                             % District heating network
+F_grid_in = 1;                                                             % District cooling network
+W_grid_in = 1;                                                             % District water network
+H2_grid_in = 1;                                                            % District hydrogen network
+E_grid_out = 1;                                                            % Electrical grid
+H_grid_out = 1;                                                            % District heating network
+F_grid_out = 1;                                                            % District cooling network
+W_grid_out = 1;                                                            % District water network
+H2_grid_out = 1;                                                           % District hydrogen network
 GB = 1;                                                                    % Natural Gas-fired Boiler
 CHP = 0;                                                                   % Combined Heat and Power
 HP = 1;                                                                    % Electrical Heat Pump
@@ -208,7 +213,6 @@ RD_AC = 1;                                                                 % Abs
 RD_EL = 1;                                                                 % Water Electrolyzer ramp-down rate (with respect to the rated size) [-]
 RD_FC = 1;                                                                 % Fuel Cell ramp-down rate (with respect to the rated size) [-]
 
-
 % Generators parameters
 K_T_w = 6;                                                                 % number of wind measures per hour
 h_WT = 80;                                                                 % wind turbine hub height [m]
@@ -216,20 +220,22 @@ h_ref = 100;                                                               % ane
 v_ci = 4;                                                                  % wind turbine cut-in wind speed [m/s]
 v_co = 22;                                                                 % wind turbine cut-off wind speed [m/s]
 v_r = 10;                                                                  % wind turbine rated wind speed [m/s]
-P_r = 400;                                                                 % wind turbine rated power [kW]
+P_r_WT = 400;                                                              % wind turbine rated power [kW]
 
-NOCT = 47;                                                                 % PV nominal operating cell temperature [°C]
+NOCT = 45;                                                                 % PV nominal operating cell temperature [°C]
 G_NOCT = 800;                                                              % reference solar radiance [W/m^2]
 T_a_NOCT = 20;                                                             % reference air temperature [°C]
-A_PV = 1.2;                                                                % One PV module surface [m^2]
+A_PV = 1.722 * 1.134;                                                      % One PV module surface [m^2]
 K_PV_BOP = 0.95;                                                           % PV system Balance Of Plant efficiency [-]
 K_PV_se = 0.21;                                                            % PV system solar-to-electricity efficiency  [-]
 T_ref = 25;                                                                % reference cell temperature [°C]
-beta_PV = -3.7*10^-3 ;                                                     % PV cell temperature coefficient [°C^-1]
+beta_PV = -2.75*10^-3 ;                                                    % PV cell temperature coefficient [°C^-1]
+P_r_PV = A_PV*K_PV_se;                                                     % PV system rated power [kW]
 
 K_CSP_se = 0.1394;                                                         % Concentrating Solar Power solar-to-electricity efficiency  [-]
 K_CSP_sh = 0.3964;                                                         % Concentrating Solar Power solar-to-heating efficiency  [-]
 A_CSP = 400;                                                               % Concentrating Solar Power surface [m^2]
+P_r_CSP = 1000;                                                            % CSP system rated power [kW]
 
 eta_0 = 0.734;                                                             % Solar Thermal Collector zero-loss effificency [-]
 a_1 = 1.529;                                                               % Solar Thermal Collector first order heat loss coefficient [W/m^2 K]
@@ -320,9 +326,9 @@ for i = 1:K_T_w*24/K_hour*T*numScenarios
         P_WT(i) = 0;
     elseif v_w(i) >= v_ci
         if v_w(i) < v_r
-        P_WT(i) = P_r*((v_w(i)-v_ci)/(v_r-v_ci));
+        P_WT(i) = P_r_WT*((v_w(i)-v_ci)/(v_r-v_ci));
         else
-            P_WT(i) = P_r;
+            P_WT(i) = P_r_WT;
         end
     end
 end
@@ -331,7 +337,7 @@ for i = 1:24/K_hour*T*numScenarios
     e_WT(i) = sum(P_WT(i*K_T_w-K_T_w+1:i*K_T_w))/K_T_w;
 end
 
-clear k_w A_w h_ref K_T_w v_w v_ci v_co v_r P_r P_WT i v_w_ref v_aver_50 v_aver_100 h_WT alpha_w
+clear k_w A_w h_ref K_T_w v_w v_ci v_co v_r P_WT i v_w_ref v_aver_50 v_aver_100 h_WT alpha_w
 
 
 % Solar systems
@@ -382,7 +388,7 @@ h_STC(h_STC<0) = 0;
 clear Sol G_0 NOCT T_a_NOCT G_NOCT A_PV K_PV_BOP eta_PV_ref T_ref beta mu_T_air mu_G_b mu_G_d
 clear mu_G_r sigma_T_air sigma_G_b sigma_G_d sigma_G_r beta_G_b beta_G_d beta_G_r beta_G_b beta_G_d beta_G_r alpha_G_b
 clear alpha_G_d alpha_G_r alpha_G_b alpha_G_d alpha_G_r eta_PV T_air T_cell i j
-clear a_1 a_2 eta_0 beta_PV T_m A_STC A_CSP K_CSP_se K_CSP_sh K_PV_se
+clear a_1 a_2 eta_0 beta_PV T_m A_CSP K_CSP_se K_CSP_sh K_PV_se
 
 %% Data checks and calculation of other simulation parameters
 if sum(w) ~= 1
@@ -397,9 +403,9 @@ Ngen = 4;                                                                  % num
 Nsto = 5;                                                                  % number of storage systems 
 Ncomp = 15;                                                                % number of components
 
-nvars = 63*T + 2*Ncomp;                                                    % number of varaibles
+nvars = 63*T + 2*Ncomp;                                                    % number of variables
 eqconst = 11*T + Nsto + 6;                                                 % number of equality constraints  
-ineqconst = 63*T + Ncomp-(Ngen);                                           % number of inequality constraints 
+ineqconst = 63*T + Ncomp;                                                  % number of inequality constraints 
 
 
 %% BUILD OBJECTIVE FUNCTION VECTORS 
@@ -418,8 +424,8 @@ ineqconst = 63*T + Ncomp-(Ngen);                                           % num
 % delta_ESS,in (51), delta_ESS,out (52), delta_TSS,H,in (53),
 % delta_TSS,H,out (54), delta_TSS,F,in (55), delta_TSS,F,out (56),
 % delta_HSS,in (57), delta_HSS,out (58), delta_WSS,in (59), delta_WSS,out (60),
-% delta_HP (61), delta_EC (62), SGB, SCHP, SHP, SAC, SEL, SFC, SWT, SPV,
-% SCSP, SSTC, SHSS, SWSS, SESS, STSS,H, STSS,F, theta_GB, theta_CHP,
+% delta_HP (61), delta_EC (62), S_GB, SCHP, SHP, SAC, SEL, SFC, NWT, NPV,
+% NCSP, NSTC, SHSS, SWSS, SESS, STSS,H, STSS,F, theta_GB, theta_CHP,
 % theta_HP, theta_AC, theta_EL, theta_FC, theta_WT, theta_PV, theta_CSP,
 % theta_STC, theta_HSS, theta_WSS, theta_ESS, theta_TSS,H, theta_TSS,F ]
 
@@ -507,21 +513,21 @@ ub = inf(nvars,1);
 intcon = [45*T+1:63*T, 63*T+7: 63*T+10, 63*T+Ncomp+1:nvars];
 
 % Upper bounds
-ub(1+ 0*T: 1*T) = E_grid*Q_E;                                              % E_grid_in
-ub(1+ 1*T: 2*T) = E_grid*Q_E;                                              % E_grid_out
-ub(1+ 2*T: 3*T) = NG_grid*CHP*Q_E;                                         % E_CHP
-ub(1+ 3*T: 4*T) = FC*Q_E;                                                  % E_FC
+ub(1+ 0*T: 1*T) = E_grid_in*Q_E;                                           % E_grid_in
+ub(1+ 1*T: 2*T) = E_grid_out*Q_E;                                          % E_grid_out
+ub(1+ 2*T: 3*T) = NG_grid_in*CHP*Q_E;                                      % E_CHP
+ub(1+ 3*T: 4*T) = FC*Q_H2*K_FC_H2e;                                        % E_FC
 ub(1+ 4*T: 5*T) = ESS*Q_E;                                                 % E_ESS_in
 ub(1+ 5*T: 6*T) = ESS*Q_E;                                                 % E_ESS_out
-ub(1+ 6*T: 7*T) = HP*Q_E;                                                  % E_HP
+ub(1+ 6*T: 7*T) = HP*Q_F/K_EC_ef;                                          % E_HP
 ub(1+ 7*T: 8*T) = EC*Q_E;                                                  % E_EC
-ub(1+ 8*T: 9*T) = EL*Q_E;                                                  % E_EL
+ub(1+ 8*T: 9*T) = EL*Q_H2/K_EL_eH2;                                        % E_EL
 ub(1+ 9*T:10*T) = Q_E;                                                     % E_out_fl
-ub(1+10*T:11*T) = H_grid*0;                                                % H_grid_in
-ub(1+11*T:12*T) = H_grid*Q_H;                                              % H_HT_grid_out
-ub(1+12*T:13*T) = H_grid*Q_H;                                              % H_LT_grid_out
-ub(1+13*T:14*T) = NG_grid*GB*Q_H;                                          % H_GB_HT
-ub(1+14*T:15*T) = NG_grid*GB*Q_H;                                          % H_GB_LT
+ub(1+10*T:11*T) = H_grid_in*Q_H;                                           % H_grid_in
+ub(1+11*T:12*T) = H_grid_out*Q_H;                                          % H_HT_grid_out
+ub(1+12*T:13*T) = H_grid_out*Q_H;                                          % H_LT_grid_out
+ub(1+13*T:14*T) = NG_grid_in*GB*Q_H;                                       % H_GB_HT
+ub(1+14*T:15*T) = NG_grid_in*GB*Q_H;                                       % H_GB_LT
 ub(1+15*T:16*T) = CHP*Q_H;                                                 % H_CHP_HT
 ub(1+16*T:17*T) = FC*Q_H;                                                  % H_FC_HT
 ub(1+17*T:18*T) = CSP*Q_H;                                                 % H_CSP_HT
@@ -531,19 +537,19 @@ ub(1+20*T:21*T) = TSS_H*Q_H;                                               % H_T
 ub(1+21*T:22*T) = TSS_H*Q_H;                                               % H_TSS_LT_out
 ub(1+22*T:23*T) = Q_H;                                                     % H_out_HT_fl
 ub(1+23*T:24*T) = Q_H;                                                     % H_out_LT_fl
-ub(1+24*T:25*T) = F_grid*0;                                                % F_grid_in
-ub(1+25*T:26*T) = F_grid*Q_F;                                              % F_grid_out
+ub(1+24*T:25*T) = F_grid_in*Q_F;                                           % F_grid_in
+ub(1+25*T:26*T) = F_grid_out*Q_F;                                          % F_grid_out
 ub(1+26*T:27*T) = AC*Q_F;                                                  % F_AC
 ub(1+27*T:28*T) = TSS_F*Q_F;                                               % F_TSS_in
 ub(1+28*T:29*T) = TSS_F*Q_F;                                               % F_TSS_out
 ub(1+29*T:30*T) = Q_F;                                                     % F_out_fl
-ub(1+30*T:31*T) = H2_grid*Q_H2;                                            % H2_grid_in
-ub(1+31*T:32*T) = H2_grid*Q_H2;                                            % H2_grid_out
+ub(1+30*T:31*T) = H2_grid_in*Q_H2;                                         % H2_grid_in
+ub(1+31*T:32*T) = H2_grid_out*Q_H2;                                        % H2_grid_out
 ub(1+32*T:33*T) = HSS*Q_H2;                                                % H2_HSS_in
 ub(1+33*T:34*T) = HSS*Q_H2;                                                % H2_HSS_out
 ub(1+34*T:35*T) = Q_H2;                                                    % H2_out_fl
-ub(1+35*T:36*T) = W_grid*Q_W;                                              % W_grid_in
-ub(1+36*T:37*T) = W_grid*Q_W;                                              % W_grid_out
+ub(1+35*T:36*T) = W_grid_in*Q_W;                                           % W_grid_in
+ub(1+36*T:37*T) = W_grid_out*Q_W;                                          % W_grid_out
 ub(1+37*T:38*T) = WSS*Q_W;                                                 % W_WSS_in
 ub(1+38*T:39*T) = WSS*Q_W;                                                 % W_WSS_out
 ub(1+39*T:40*T) = Q_W;                                                     % W_out_fl
@@ -559,10 +565,10 @@ ub(end-27) = HP*Q_F;                                                       % S_H
 ub(end-26) = AC*Q_F;                                                       % S_AC
 ub(end-25) = EL*Q_E;                                                       % S_EL
 ub(end-24) = FC*Q_E;                                                       % S_FC
-ub(end-23) = WT*Q_E;                                                       % S_WT
-ub(end-22) = PV*Q_E;                                                       % S_PV
-ub(end-21) = CSP*Q_E;                                                      % S_CSP
-ub(end-20) = STC*Q_H;                                                      % S_STC
+ub(end-23) = WT*Q_E;                                                       % N_WT
+ub(end-22) = PV*Q_E;                                                       % N_PV
+ub(end-21) = CSP*Q_E;                                                      % N_CSP
+ub(end-20) = STC*Q_H;                                                      % N_STC
 ub(end-19) = HSS*Q_H2;                                                     % S_HSS
 ub(end-18) = WSS*Q_W;                                                      % S_WSS
 ub(end-17) = ESS*Q_E;                                                      % S_ESS
@@ -581,7 +587,7 @@ b(32*T+1:33*T) = 1;                                                        % HP
 % Inequality constraints coefficients matrix
 for i = 1:T
 
-% Electrical storage input and output connection with status variable
+% ESS
 A(i+0*T,i+4*T) = 1;
 A(i+0*T,i+51*T) = -Q_E;
 A(i+1*T,i+5*T) = 1;
@@ -593,7 +599,7 @@ A(i+3*T,i+40*T) = -1;
 A(i+4*T,i+40*T) = 1;
 A(i+4*T,63*T+13) = -24/K_hour*DoC_EES;
 
-% Hot thermal storage input and output connection with status variable
+% TSS,H
 A(i+5*T,i+19*T) = 1;
 A(i+5*T,i+53*T) = -Q_H;
 A(i+6*T,i+20*T) = 1;
@@ -606,7 +612,7 @@ A(i+8*T,i+41*T) = -1;
 A(i+9*T,i+41*T) = 1;
 A(i+9*T,63*T+14) = -24/K_hour*DoC_TSS_H;
 
-% Cold thermal storage input and output connection with status variable
+% TSS,F
 A(i+10*T,i+27*T) = 1;
 A(i+10*T,i+55*T) = -Q_F;
 A(i+11*T,i+28*T) = 1;
@@ -618,7 +624,7 @@ A(i+13*T,i+42*T) = -1;
 A(i+14*T,i+42*T) = 1;
 A(i+14*T,63*T+15) = -24/K_hour*DoC_TSS_F;
 
-% Hydrogen storage input and output connection with status variable
+% HSS
 A(i+15*T,i+32*T) = 1;
 A(i+15*T,i+57*T) = -Q_H2;
 A(i+16*T,i+33*T) = 1;
@@ -630,7 +636,7 @@ A(i+18*T,i+43*T) = -1;
 A(i+19*T,i+43*T) = 1;
 A(i+19*T,63*T+11) = -24/K_hour*DoC_HSS;
 
-% Water storage input and output connection with status variable
+% WSS
 A(i+20*T,i+37*T) = 1;
 A(i+20*T,i+59*T) = -Q_W;
 A(i+21*T,i+38*T) = 1;
@@ -642,7 +648,7 @@ A(i+23*T,i+44*T) = -1;
 A(i+24*T,i+44*T) = 1;
 A(i+24*T,63*T+12) = -24/K_hour*DoC_WSS;
 
-% CHP minimum load and connection with status variable
+% CHP
 A(i+25*T,i+46*T) = E_CHP_min;
 A(i+25*T,i+2*T)=-1;
 A(i+26*T,i+2*T)=1;
@@ -656,7 +662,7 @@ A(i+29*T,i+2*T+1)=1;
 A(i+29*T,i+2*T)=-1;
 A(i+29*T,63*T+2)=-RU_CHP;
 
-% HP minimum load and connection with status variable
+% HP
 A(i+30*T,i+6*T)=1;
 A(i+30*T,i+61*T)=-Q_F;
 A(i+31*T,i+7*T)=1;
@@ -754,23 +760,24 @@ A(i+62*T,63*T+1)=-RU_GB;
 end
 
 % Link between design and synthesis variables
-for i=1:6
+for i=1:Ncomp
     A(i+63*T,63*T+i)=1;
 end
-for i=1:5
-    A(i+63*T+6,63*T+10+i)=1;
-end
-A(1 +63*T,63*T+16)=-Q_H;     % GB
-A(2 +63*T,63*T+17)=-Q_E;     % CHP
-A(3 +63*T,63*T+18)=-Q_F;     % HP
-A(4 +63*T,63*T+19)=-Q_F;     % AC
-A(5 +63*T,63*T+20)=-Q_E;     % EL
-A(6 +63*T,63*T+21)=-Q_E;     % FC
-A(7 +63*T,63*T+26)=-Q_H2;    % HSS
-A(8 +63*T,63*T+27)=-Q_W;     % WSS
-A(9 +63*T,63*T+28)=-Q_E;     % ESS
-A(10+63*T,63*T+29)=-Q_H;     % TSS,H
-A(11+63*T,63*T+30)=-Q_F;     % TSS,F
+A(1 +63*T,63*T+16) = -Q_H;                                                 % GB
+A(2 +63*T,63*T+17) = -Q_E;                                                 % CHP
+A(3 +63*T,63*T+18) = -Q_F;                                                 % HP
+A(4 +63*T,63*T+19) = -Q_F;                                                 % AC
+A(5 +63*T,63*T+20) = -Q_E;                                                 % EL
+A(6 +63*T,63*T+21) = -Q_E;                                                 % FC
+A(7 +63*T,63*T+22) = -Q_E;                                                 % WT
+A(8 +63*T,63*T+23) = -Q_E;                                                 % PV
+A(9 +63*T,63*T+24) = -Q_E;                                                 % CSP
+A(10+63*T,63*T+25) = -Q_H;                                                 % STC
+A(11+63*T,63*T+26) = -Q_H2;                                                % HSS
+A(12+63*T,63*T+27) = -Q_W;                                                 % WSS
+A(13+63*T,63*T+28) = -Q_E;                                                 % ESS
+A(14+63*T,63*T+29) = -Q_H;                                                 % TSS,H
+A(15+63*T,63*T+30) = -Q_F;                                                 % TSS,F
 
 % Corrections to the A matrix
 A(29*T,2*T+1)=-1;
@@ -982,10 +989,10 @@ A_eq(10+11*T,1+34*T:35*T) = 1;
 A_eq(11+11*T,1+39*T:40*T) = 1;
 
 % Cost objective function
-f_cost(end-23) = f_cost(end-23)+365/K_day*sum(e_WT(p))*R_REC_ele;        
-f_cost(end-22) = f_cost(end-22)+365/K_day*sum(e_PV(p))*R_REC_ele;        
-f_cost(end-21) = f_cost(end-21)+365/K_day*(sum(e_CSP(p))*R_REC_ele+sum(h_CSP(p))*R_REC_th);
-f_cost(end-20) = f_cost(end-20)+365/K_day*sum(h_STC(p))*R_REC_th;      
+f_cost(end-23) = f_cost(end-23)+365/K_day*sum(e_WT(:,p))*R_REC_ele;        
+f_cost(end-22) = f_cost(end-22)+365/K_day*sum(e_PV(:,p))*R_REC_ele;        
+f_cost(end-21) = f_cost(end-21)+365/K_day*(sum(e_CSP(:,p))*R_REC_ele+sum(h_CSP(:,p))*R_REC_th);
+f_cost(end-20) = f_cost(end-20)+365/K_day*sum(h_STC(:,p))*R_REC_th;      
 
 % Solutions
 if Method == 's'
@@ -1011,6 +1018,8 @@ elseif Method == 'g'
 end
 
 end
+
+%% OPTIMIZATION ALGORITHM OUTPUTS
 
 if numScenarios ~= 1
         x_FVAL = x_sol*f;
@@ -1163,8 +1172,8 @@ elseif Method == 'g'
     end
 end
 
-clear E_grid NG_grid H_grid F_grid W_grid H2_grid GB CHP HP EC AC EL FC WT PV CSP STC HSS WSS ESS TSS_H TSS_F
-clear Q_E Q_H Q_F Q_H2 Q_W LHV_NG K_E_grid K_NG_grid K_H_grid K_F_grid K_W_grid K_H2_grid
+clear E_grid_in NG_grid_in H_grid_in F_grid_in W_grid_in H2_grid_in GB CHP HP EC AC EL FC WT PV CSP STC HSS WSS ESS TSS_H TSS_F
+clear Q_E Q_H Q_F Q_H2 Q_W LHV_NG K_E_grid K_H_grid K_F_grid K_W_grid K_H2_grid
 clear K_GB_gh K_CHP_ge K_CHP_gh K_HP_eh K_EC_ef K_AC_hf K_EL_eH2 K_EL_H2w K_FC_H2h K_FC_H2e K_FC_H2w
 clear H_GB_min E_CHP_min F_HP_min H_HP_min F_AC_min E_EL_min E_FC_min RU_GB RU_CHP RU_EC RU_AC
 clear RU_EL RU_FC RD_GB RD_CHP RD_EC RD_AC RD_EL RD_FC K_HSS_in K_HSS_out phi_HSS DoD_HSS DoC_HSS Q_HSS
@@ -1172,6 +1181,6 @@ clear K_WSS_in K_WSS_out phi_WSS DoD_WSS DoC_WSS K_ESS_in K_ESS_out phi_ESS DoD_
 clear K_TSS_H_in K_TSS_H_out K_TSS_F_in K_TSS_F_out phi_TSS_H phi_TSS_F DoD_TSS_H DoD_TSS_F DoC_TSS_H DoC_TSS_F
 clear Ngen Nsto Ncomp nvars eqconst ineqconst p p_CSP UL C_capex C_capex_0 C_opex C_grids 
 clear R_grids R_flex R_REC_ele R_REC_th i_def UCRF PE_embodied PE_grids GWP_embodied GWP_grids
-clear GII_grids_in GII_grids_out CRM_embodied CRM_grids Equip Grids intcon
-clear A A_eq b b_eq e_CSP e_PV e_WT h_CSP h_STC E_out_fix F_out_fix H2_out_fix H_out_HT_fix H_out_LT_fix W_out_fix
+clear GII_grids_in GII_grids_out CRM_embodied CRM_grids Equip Grids intcon P_r_WT A_STC P_r_PV P_r_CSP 
+clear A A_eq b b_eq E_out_fix F_out_fix H2_out_fix H_out_HT_fix H_out_LT_fix W_out_fix
 clear lb ub i E_out_flex_TOT H_out_HT_flex_TOT H_out_LT_flex_TOT F_out_flex_TOT H2_out_flex_TOT W_out_flex_TOT G_b G_d G_r G_sol
