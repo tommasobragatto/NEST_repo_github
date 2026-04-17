@@ -12,21 +12,13 @@
 
 
 
-function [fi,fu] = RecCon(x,P_l,P_g,nt,eta_b,eta_i,dt,E_max,E_min,E_b,P_b,Pr_sh,Pr_s,Pr_p,E_0,e_rIII,n_dr_III,n_t_dr3)
+function f0 = RecObj(x,P_l,P_g,nt,eta_b,eta_i,dt,E_max,E_min,E_b,Pb,Pr_sh,Pr_s,Pr_p,E_0,e_rIII,n_dr_III,n_t_dr3)
 
-E_1 =-(x(1:nt)/eta_i.*eta_b.*(x(1:nt)<0)+x(1:nt)/eta_i/eta_b.*(x(1:nt)>0))*dt*P_b/E_b;  % SoC evaluation for all forward time intervals
-E_11 = [E_0,E_1];
-E = cumsum(E_11);
-
-fi(1:nt,1) = -x(1:nt)'-P_g/eta_i;       % BESS Vs RES generation constraints
-fi(nt+1:2*nt,1)=E(2:nt+1)'-E_max;       % BESS maximum capacity
-fi(2*nt+1:3*nt,1)=-E(2:nt+1)'+E_min;    % BESS minimum capacity
-
-if n_dr_III>0
-    for h=1:n_dr_III
-        fi(3*nt+h,1) = -x(nt+(h-1)*n_t_dr3+1:nt+h*n_t_dr3)*ones(n_t_dr3,1)*dt+e_rIII(h,1);       % Energy required by DR Load Type III
-    end
+P_gt = P_g+x(1:nt)';
+P_dr = zeros(nt,1);
+for h=1:n_dr_III
+    P_dr(1:n_t_dr3,1) = P_dr(1:n_t_dr3,1)+x(nt+(h-1)*n_t_dr3+1:nt+h*n_t_dr3)';
 end
+P_l = P_l+P_dr;
 
-fu = [];
-    
+f0 = -min([P_l';P_gt'])*Pr_sh-P_gt'*Pr_s+P_l'*Pr_p;
